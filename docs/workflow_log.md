@@ -76,5 +76,5 @@
   - `tests/test_models.py`（填充真实断言 + 修正 3 项测试）
   - `pyproject.toml`（新建：项目元数据 + 依赖声明 + pytest/ruff 配置）
   - `.venv/`（依赖安装环境）
-- **对应 commit**: `4ad9ecf`
+- **对应 tag**: `v0.3-storage`（commit `e583e95`）
 - **对应 tag**: `v0.3-storage`
