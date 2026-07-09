@@ -1,0 +1,49 @@
+[project]
+name = "langchain-chat"
+version = "0.3.0"
+description = "基于 LangChain 的多轮会话系统"
+requires-python = ">=3.10"
+dependencies = [
+    "langchain==1.3.11",
+    "langchain-core==1.4.8",
+    "langchain-openai==1.3.2",
+    "aiosqlite",
+    "aiomysql",
+    "pydantic",
+    "pydantic-settings",
+    "python-dotenv",
+    "pyyaml",
+    "rich",
+    "prompt-toolkit",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-asyncio>=0.21",
+    "ruff>=0.6",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple/"
+default = true
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.22.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.ruff.format]
+quote-style = "double"

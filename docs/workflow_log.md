@@ -47,4 +47,34 @@
   - `src/__init__.py` / `src/models/__init__.py` / `tests/__init__.py`
 - **对应 commit**: `9ccb5fd`
 - **对应 tag**: `v0.2-models`
-- **遗留问题/待办**: 测试用例尚未实现，只有 fixture 和空测试类骨架
+- **遗留问题/待办**: 已在本步骤（[步骤2]）补充真实断言并全部通过
+
+---
+
+## [步骤2] 存储层 — 2026-07-09
+
+- **对应需求**: 4.1（可插拔后端设计）、4.2（工厂模式）、4.3（数据实体 DDL）
+- **设计要点**:
+  - StorageBackend 抽象基类定义 5 组实体的统一异步 CRUD 接口
+  - StorageFactory 根据 config.yaml 的 storage.type 创建对应后端实例
+  - SQLite DDL 所有外键加 ON DELETE CASCADE（配合 PRAGMA foreign_keys = ON）
+  - 时间戳存 ISO 8601 文本，Python 侧 Pydantic 序列化/反序列化
+  - Session.title 应用层兜底 `"未命名会话"`（create_session 内转换）
+  - 补全 test_models.py 真实断言（40 项全部通过）
+- **遗留设计决策（记录给 session_manager 参考）**:
+  - `title` 的占位符字符串无法用于判断"是否需要自动生成标题"
+  - C7 触发逻辑应基于"是否为该 session 的第一条 human 消息"或显式状态标记，
+    **不要**通过 `title == "未命名会话"` 判断，避免用户手动改为同名标题时误判
+- **变更文件**:
+  - `src/storage/base.py`（新建）
+  - `src/storage/__init__.py`（新建）
+  - `src/storage/factory.py`（新建）
+  - `src/storage/sqlite_backend.py`（新建）
+  - `src/models/schemas.py`（Message.role → Literal 类型限定）
+  - `tests/conftest.py`（新建：tmp_sqlite_backend fixture）
+  - `tests/test_storage.py`（新建：28 项集成测试）
+  - `tests/test_models.py`（填充真实断言 + 修正 3 项测试）
+  - `pyproject.toml`（新建：项目元数据 + 依赖声明 + pytest/ruff 配置）
+  - `.venv/`（依赖安装环境）
+- **对应 commit**: `4ad9ecf`
+- **对应 tag**: `v0.3-storage`

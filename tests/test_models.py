@@ -14,6 +14,7 @@
 """
 
 import pytest
+from pydantic import ValidationError
 
 from src.models.schemas import (
     Message,
@@ -172,93 +173,144 @@ def config_instance(config_create_data: dict) -> UserConfig:
 
 
 # =============================================================================
-# 占位测试用例（后续逐步补充）
+# 测试用例 —— User
 # =============================================================================
 
 
 class TestUserModel:
-    """User 模型校验测试（骨架）"""
+    """User 模型校验测试"""
 
     def test_username_regex_valid(self, user_create_instance: UserCreate):
-        """TODO: 合法的 username 应通过校验"""
-        pass
+        """合法 username（字母、数字、下划线、连字符）应通过校验"""
+        for name in ["alice", "test_user", "user-123", "ADMIN"]:
+            u = UserCreate(username=name)
+            assert u.username == name
 
     def test_username_regex_invalid(self):
-        """TODO: 含特殊字符的 username 应拒绝"""
-        pass
+        """含特殊字符（@、空格、中文等）的 username 应拒绝"""
+        for name in ["user@name", "test user", "张三", "user.name"]:
+            with pytest.raises(ValueError):
+                UserCreate(username=name)
 
-    def test_username_min_length(self):
-        """TODO: 空字符串应拒绝"""
-        pass
+    def test_username_min_length_empty(self):
+        """空字符串应拒绝"""
+        with pytest.raises(ValueError):
+            UserCreate(username="")
 
     def test_user_serialization(self, user_instance: User):
-        """TODO: User → dict → User 往返序列化"""
-        pass
+        """User → dict → User 往返序列化"""
+        data = user_instance.model_dump()
+        restored = User(**data)
+        assert restored.id == user_instance.id
+        assert restored.username == user_instance.username
+        assert restored.default_model == user_instance.default_model
 
     def test_user_timestamps_utc(self, user_instance: User):
-        """TODO: created_at / updated_at 应为 UTC"""
-        pass
+        """created_at / updated_at 时区应为 UTC"""
+        assert user_instance.created_at.tzinfo is not None
+        assert str(user_instance.created_at.tzinfo) == "UTC"
+        assert user_instance.updated_at.tzinfo is not None
+        assert str(user_instance.updated_at.tzinfo) == "UTC"
+
+
+# =============================================================================
+# 测试用例 —— Session
+# =============================================================================
 
 
 class TestSessionModel:
-    """Session 模型校验测试（骨架）"""
+    """Session 模型校验测试"""
 
     def test_title_default_none(self, session_create_instance: SessionCreate):
-        """TODO: 新建会话时 title 应默认为 None"""
-        pass
+        """新建会话时 title 应默认为 None"""
+        assert session_create_instance.title is None
+
+    def test_title_optional_in_create(self):
+        """SessionCreate 可不传 title"""
+        s = SessionCreate(user_id=1, model_name="gpt-4o")
+        assert s.title is None
 
     def test_tokens_default_zero(self, session_instance: Session):
-        """TODO: total_prompt_tokens / total_completion_tokens 默认 0"""
-        pass
+        """total_prompt_tokens / total_completion_tokens 默认 0"""
+        assert session_instance.total_prompt_tokens == 0
+        assert session_instance.total_completion_tokens == 0
 
     def test_session_serialization(self, session_instance: Session):
-        """TODO: Session → dict → Session 往返序列化"""
-        pass
+        """Session → dict → Session 往返序列化"""
+        data = session_instance.model_dump()
+        restored = Session(**data)
+        assert restored.id == session_instance.id
+        assert restored.title == session_instance.title
+
+
+# =============================================================================
+# 测试用例 —— Message
+# =============================================================================
 
 
 class TestMessageModel:
-    """Message 模型校验测试（骨架）"""
+    """Message 模型校验测试"""
 
     def test_role_valid_values(self):
-        """TODO: role 只能取 human / ai / system"""
-        pass
+        """role 可以取 human / ai / system"""
+        for role in ("human", "ai", "system"):
+            m = MessageCreate(session_id=1, role=role, content="x")
+            assert m.role == role
 
     def test_role_invalid_value(self):
-        """TODO: role 取其他值应拒绝"""
-        pass
+        """role 取其他值应拒绝"""
+        with pytest.raises(ValidationError):
+            MessageCreate(session_id=1, role="bot", content="x")
 
-    def test_tokens_default_zero(self, message_instance: Message):
-        """TODO: prompt_tokens / completion_tokens 默认 0"""
-        pass
+    def test_tokens_default_zero(self):
+        """prompt_tokens / completion_tokens 默认 0"""
+        msg = MessageCreate(session_id=1, role="human", content="x")
+        assert msg.prompt_tokens == 0
+        assert msg.completion_tokens == 0
 
     def test_no_updated_at(self, message_instance: Message):
-        """TODO: Message 不应包含 updated_at 字段"""
-        pass
+        """Message 不应包含 updated_at 字段"""
+        assert not hasattr(message_instance, "updated_at")
+
+
+# =============================================================================
+# 测试用例 —— Preset
+# =============================================================================
 
 
 class TestPresetModel:
-    """Preset 模型校验测试（骨架）"""
+    """Preset 模型校验测试"""
 
     def test_user_id_none_for_builtin(self, preset_instance: Preset):
-        """TODO: 内置预设 user_id 应为 None"""
-        pass
+        """内置预设（is_builtin=True）的 user_id 应为 None"""
+        assert preset_instance.user_id is None
 
     def test_description_optional(self):
-        """TODO: description 可为 None"""
-        pass
+        """description 可为 None"""
+        p = PresetCreate(name="test", system_prompt="sp")
+        assert p.description is None
 
     def test_is_builtin_default_false(self):
-        """TODO: 非内置预设 is_builtin 默认 False"""
-        pass
+        """非内置预设 is_builtin 默认 False"""
+        p = PresetCreate(name="test", system_prompt="sp")
+        assert p.is_builtin is False
+
+
+# =============================================================================
+# 测试用例 —— UserConfig
+# =============================================================================
 
 
 class TestUserConfigModel:
-    """UserConfig 模型校验测试（骨架）"""
+    """UserConfig 模型校验测试"""
 
     def test_no_created_at(self, config_instance: UserConfig):
-        """TODO: UserConfig 不应包含 created_at 字段"""
-        pass
+        """UserConfig 不应包含 created_at 字段"""
+        assert not hasattr(config_instance, "created_at")
 
     def test_key_value_required(self):
-        """TODO: key 和 value 均为必填"""
-        pass
+        """key 和 value 均为必填（缺字段触发 ValidationError）"""
+        with pytest.raises(ValidationError):
+            UserConfigCreate(user_id=1, value="v")  # 缺 key
+        with pytest.raises(ValidationError):
+            UserConfigCreate(user_id=1, key="k")  # 缺 value
