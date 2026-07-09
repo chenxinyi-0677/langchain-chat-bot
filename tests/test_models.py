@@ -24,11 +24,10 @@ from src.models.schemas import (
     Session,
     SessionCreate,
     User,
-    UserCreate,
     UserConfig,
     UserConfigCreate,
+    UserCreate,
 )
-
 
 # =============================================================================
 # Fixtures —— User

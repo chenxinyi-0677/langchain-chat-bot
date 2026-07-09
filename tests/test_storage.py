@@ -18,11 +18,10 @@ from src.models.schemas import (
     MessageCreate,
     PresetCreate,
     SessionCreate,
-    UserCreate,
     UserConfigCreate,
+    UserCreate,
 )
 from src.storage.sqlite_backend import SQLiteBackend
-
 
 # =========================================================================
 # User CRUD
@@ -44,9 +43,7 @@ class TestUserStorage:
         assert fetched is not None
         assert fetched.username == "alice"
 
-    async def test_create_duplicate_username_raises(
-        self, tmp_sqlite_backend: SQLiteBackend
-    ):
+    async def test_create_duplicate_username_raises(self, tmp_sqlite_backend: SQLiteBackend):
         await tmp_sqlite_backend.create_user(UserCreate(username="alice"))
         with pytest.raises(ValueError, match="alice"):
             await tmp_sqlite_backend.create_user(UserCreate(username="alice"))
@@ -94,9 +91,7 @@ class TestUserStorage:
 class TestSessionStorage:
     """会话存储测试"""
 
-    async def test_create_session_title_fallback(
-        self, tmp_sqlite_backend: SQLiteBackend
-    ):
+    async def test_create_session_title_fallback(self, tmp_sqlite_backend: SQLiteBackend):
         user = await tmp_sqlite_backend.create_user(UserCreate(username="eve"))
         ses = await tmp_sqlite_backend.create_session(
             SessionCreate(user_id=user.id, model_name="gpt-4o"),
@@ -265,43 +260,29 @@ class TestUserConfigStorage:
 
     async def test_upsert_updates_existing(self, tmp_sqlite_backend: SQLiteBackend):
         user = await tmp_sqlite_backend.create_user(UserCreate(username="o"))
-        await tmp_sqlite_backend.upsert_user_config(
-            UserConfigCreate(user_id=user.id, key="lang", value="zh")
-        )
-        await tmp_sqlite_backend.upsert_user_config(
-            UserConfigCreate(user_id=user.id, key="lang", value="en")
-        )
+        await tmp_sqlite_backend.upsert_user_config(UserConfigCreate(user_id=user.id, key="lang", value="zh"))
+        await tmp_sqlite_backend.upsert_user_config(UserConfigCreate(user_id=user.id, key="lang", value="en"))
         fetched = await tmp_sqlite_backend.get_user_config(user.id, "lang")
         assert fetched is not None
         assert fetched.value == "en"
 
     async def test_get_user_configs(self, tmp_sqlite_backend: SQLiteBackend):
         user = await tmp_sqlite_backend.create_user(UserCreate(username="p"))
-        await tmp_sqlite_backend.upsert_user_config(
-            UserConfigCreate(user_id=user.id, key="a", value="1")
-        )
-        await tmp_sqlite_backend.upsert_user_config(
-            UserConfigCreate(user_id=user.id, key="b", value="2")
-        )
+        await tmp_sqlite_backend.upsert_user_config(UserConfigCreate(user_id=user.id, key="a", value="1"))
+        await tmp_sqlite_backend.upsert_user_config(UserConfigCreate(user_id=user.id, key="b", value="2"))
         configs = await tmp_sqlite_backend.get_user_configs(user.id)
         assert len(configs) == 2
 
     async def test_delete_user_config(self, tmp_sqlite_backend: SQLiteBackend):
         user = await tmp_sqlite_backend.create_user(UserCreate(username="q"))
-        await tmp_sqlite_backend.upsert_user_config(
-            UserConfigCreate(user_id=user.id, key="x", value="y")
-        )
+        await tmp_sqlite_backend.upsert_user_config(UserConfigCreate(user_id=user.id, key="x", value="y"))
         await tmp_sqlite_backend.delete_user_config(user.id, "x")
         assert await tmp_sqlite_backend.get_user_config(user.id, "x") is None
 
     async def test_user_config_isolation(self, tmp_sqlite_backend: SQLiteBackend):
         u1 = await tmp_sqlite_backend.create_user(UserCreate(username="r"))
         u2 = await tmp_sqlite_backend.create_user(UserCreate(username="s"))
-        await tmp_sqlite_backend.upsert_user_config(
-            UserConfigCreate(user_id=u1.id, key="k", value="v1")
-        )
-        await tmp_sqlite_backend.upsert_user_config(
-            UserConfigCreate(user_id=u2.id, key="k", value="v2")
-        )
+        await tmp_sqlite_backend.upsert_user_config(UserConfigCreate(user_id=u1.id, key="k", value="v1"))
+        await tmp_sqlite_backend.upsert_user_config(UserConfigCreate(user_id=u2.id, key="k", value="v2"))
         assert (await tmp_sqlite_backend.get_user_config(u1.id, "k")).value == "v1"
         assert (await tmp_sqlite_backend.get_user_config(u2.id, "k")).value == "v2"

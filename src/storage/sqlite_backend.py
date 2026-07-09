@@ -28,9 +28,9 @@ from src.models.schemas import (
     Session,
     SessionCreate,
     User,
-    UserCreate,
     UserConfig,
     UserConfigCreate,
+    UserCreate,
 )
 from src.storage.base import StorageBackend
 
@@ -236,9 +236,7 @@ class SQLiteBackend(StorageBackend):
 
     async def get_user_by_username(self, username: str) -> Optional[User]:
         conn = await self._ensure_conn()
-        cursor = await conn.execute(
-            "SELECT * FROM users WHERE username = ?", (username,)
-        )
+        cursor = await conn.execute("SELECT * FROM users WHERE username = ?", (username,))
         row = await cursor.fetchone()
         return self._row_to_user(row) if row else None
 
@@ -294,9 +292,7 @@ class SQLiteBackend(StorageBackend):
 
     async def get_session(self, session_id: int) -> Optional[Session]:
         conn = await self._ensure_conn()
-        cursor = await conn.execute(
-            "SELECT * FROM sessions WHERE id = ?", (session_id,)
-        )
+        cursor = await conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,))
         row = await cursor.fetchone()
         return self._row_to_session(row) if row else None
 
@@ -445,9 +441,7 @@ class SQLiteBackend(StorageBackend):
 
     async def get_builtin_presets(self) -> list[Preset]:
         conn = await self._ensure_conn()
-        cursor = await conn.execute(
-            "SELECT * FROM presets WHERE user_id IS NULL ORDER BY id"
-        )
+        cursor = await conn.execute("SELECT * FROM presets WHERE user_id IS NULL ORDER BY id")
         rows = await cursor.fetchall()
         return [self._row_to_preset(r) for r in rows]
 

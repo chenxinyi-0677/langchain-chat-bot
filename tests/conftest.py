@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from src.models.schemas import User, UserCreate
 from src.storage.sqlite_backend import SQLiteBackend
 
 
@@ -24,3 +25,9 @@ async def tmp_sqlite_backend(tmp_path: Path) -> SQLiteBackend:
     await backend.init_db()
     yield backend
     await backend.close()
+
+
+@pytest.fixture
+async def test_user(tmp_sqlite_backend: SQLiteBackend) -> User:
+    """返回一个已持久化的测试用户"""
+    return await tmp_sqlite_backend.create_user(UserCreate(username="test_user"))

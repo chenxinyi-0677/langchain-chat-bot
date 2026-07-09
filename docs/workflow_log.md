@@ -77,4 +77,21 @@
   - `pyproject.toml`（新建：项目元数据 + 依赖声明 + pytest/ruff 配置）
   - `.venv/`（依赖安装环境）
 - **对应 tag**: `v0.3-storage`（commit `e583e95`）
-- **对应 tag**: `v0.3-storage`
+
+---
+
+## [步骤3] 会话管理层 — 2026-07-09
+
+- **对应需求**: C1（新建会话）、C2（加载历史）、C3（会话列表）、C4（重命名）、C5（删除会话）、C6（自动保存）、C7（标题自动生成）、E2（Token 统计）、B4（用户隔离）
+- **设计要点**:
+  - `_title_generated` 内存缓存标记：create_session 置 False，load_session 查一次库初始化，避免每次 add_user_message 全表扫描
+  - C7 触发条件基于"此 session 在此之前是否有 human 消息"，不比较 `title == "未命名会话"`
+  - 复用 `backend.update_session(session)` 持久化标题变更 + token 累计，不新增专用方法
+  - delete_session 同时重置 `_current_session = None` + `_title_generated = False`
+  - 所有操作先校验会话归属（B4 用户隔离），非归属用户抛出 ValueError
+- **变更文件**:
+  - `src/core/__init__.py`（新建）
+  - `src/core/session_manager.py`（新建）
+  - `tests/conftest.py`（新增 test_user fixture）
+  - `tests/test_session_manager.py`（新建，28 项测试）
+- **对应 tag**: `v0.4-session-manager`

@@ -49,9 +49,7 @@ class StorageFactory:
 
         backend_cls = cls._BACKENDS.get(backend_type)
         if backend_cls is None:
-            raise ValueError(
-                f"未知的存储类型: {backend_type!r}。可选: {', '.join(cls._BACKENDS)}"
-            )
+            raise ValueError(f"未知的存储类型: {backend_type!r}。可选: {', '.join(cls._BACKENDS)}")
 
         backend_cfg = storage_cfg.get(backend_type, {})
         return backend_cls(**backend_cfg)
