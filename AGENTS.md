@@ -182,3 +182,39 @@ langchain-chat/
 | H2 多模型对比 | 基础功能 A-G 完成后作为独立任务实现 |
 | LLM 重试 | config.yaml → llm.timeout / llm.max_retries |
 | 后期预留 | H1/H3/H4/H5 只定义接口签名，不实现逻辑 |
+
+---
+
+## 工作流与追溯规范
+
+### 1. 需求追溯
+- 每个模块/函数的实现，必须能对应回需求说明文档的具体编号（如 A1、C6、H2）
+- 核心文件（chat_engine.py、session_manager.py 等）顶部注释需列出本文件覆盖的需求编号
+  示例：# 覆盖需求: A1(多轮对话) A2(流式输出) A5(会话内模型切换)
+
+### 2. Workflow Log（开发过程日志）
+- 位置: docs/workflow_log.md
+- 每完成一个开发步骤（对应一次 commit），追加一条记录，格式:
+  ## [步骤编号] 模块名 — YYYY-MM-DD
+  - 对应需求: xxx
+  - 设计要点: (Plan 阶段的关键决策，如字段设计、异常处理策略)
+  - 变更文件: xxx
+  - 对应 commit: &lt;hash&gt;
+  - 对应 tag: v0.x-xxx（如有）
+  - 遗留问题/待办: xxx（如有）
+- 目的: 让人（不只是 AI）之后能追溯"为什么这么设计"，不用重新翻对话记录
+
+### 3. Git Commit Flow
+- 采用 Conventional Commits 规范:
+  feat: 新功能    fix: 修复    docs: 文档    test: 测试
+  refactor: 重构  chore: 杂项  style: 格式调整
+- 提交粒度: 一个逻辑步骤一次 commit，不跨层合并提交
+  （如 models 和 storage 分开提交，不要一次性提交多层）
+- 每个里程碑（完成一层）打 tag，格式: v0.&lt;序号&gt;-&lt;层名&gt;
+  如 v0.1-agents-md-revised、v0.2-models、v0.3-storage
+- commit message 第二行起可选写明对应需求编号和 workflow_log 条目位置
+
+### 4. 工程规范补充
+- 每次 Build 前必须先过 Plan 阶段（设计方案 + 人工确认），不允许跳过直接写代码
+- 每层完成后运行 ruff check + pytest，确保通过才允许 commit
+- CHANGELOG.md 可选，若维护则每次 tag 时同步更新
