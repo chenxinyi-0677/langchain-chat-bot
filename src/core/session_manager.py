@@ -127,6 +127,20 @@ class SessionManager:
     # C4 — 重命名
     # ==================================================================
 
+    async def update_model(self, model_name: str) -> Session:
+        """切换当前会话的模型并持久化
+
+        A5: 保留历史上下文，仅更换 LLM 实例。
+        重新 load_session 后 model_name 仍为切换后的值。
+        """
+        self._assert_in_session()
+        assert self._current_session is not None
+
+        self._current_session.model_name = model_name
+        updated = await self._backend.update_session(self._current_session)
+        self._current_session.model_name = updated.model_name
+        return updated
+
     async def rename_session(self, session_id: int, new_title: str) -> Session:
         """修改会话标题
 

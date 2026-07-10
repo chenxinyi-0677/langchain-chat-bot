@@ -152,3 +152,24 @@
   - `.env.example`（新建，环境变量模板，.env 本身不提交）
 - **对应 commit**: `51ca994`
 - **对应 tag**: `v0.7-config-manager`
+
+---
+
+## [步骤7] 对话引擎 — 2026-07-10
+
+- **对应需求**: A1（多轮对话）、A2（流式输出）、A3（全异步）、A4（可配置LLM后端）、A5（会话内切换模型）、G1（超时+重试）、E2（Token统计）
+- **设计要点**:
+  - Memory 策略：手动将 SessionManager.get_messages() 转为 LangChain 消息格式（langchain.memory 在 1.3.11 中不存在），每次 chat() 调用时重新转换，A5 切换模型不受影响
+  - Token 统计：ChatOpenAI(stream_usage=True) → astream 最后一条 chunk 的 usage_metadata
+  - 超时+重试：直接使用 ChatOpenAI 内置的 timeout / max_retries 参数
+  - ChatEngine 与 SessionManager 关系：依赖注入，ChatEngine 构造时接收 SessionManager 实例
+  - chat() 为 async generator，一次调用完成保存用户消息 → 拉取历史 → 调 LLM → yield 逐 token → 提取 usage → 保存 AI 回复
+  - SessionManager 新增 `update_model` 公开方法（参考 rename_session 模式），ChatEngine 不再直接访问 _backend
+  - `_build_llm()` 从 `session_mgr.current_session.model_name` 读取模型名（支持 A5）
+  - 构造函数不持有 backend，全部通过 session_mgr 转发
+- **变更文件**:
+  - `src/core/chat_engine.py`（新建，~150 行）
+  - `tests/test_chat_engine.py`（新建，9 项测试）
+  - `src/core/session_manager.py`（新增 update_model 方法 + 3 项测试）
+- **对应 commit**: `95590b3`
+- **对应 tag**: `v0.8-chat-engine`

@@ -178,6 +178,35 @@ class TestRenameSession:
 
 
 # =====================================================================
+# A5 — 切换模型
+# =====================================================================
+
+
+class TestUpdateModel:
+    """A5 切换模型"""
+
+    async def test_update_model(self, mgr: SessionManager):
+        await mgr.create_session(model_name="gpt-4o")
+        updated = await mgr.update_model("gpt-4o-mini")
+        assert updated.model_name == "gpt-4o-mini"
+        # 内存缓存同步更新
+        assert mgr.current_session is not None
+        assert mgr.current_session.model_name == "gpt-4o-mini"
+
+    async def test_update_model_persists(self, mgr: SessionManager):
+        session = await mgr.create_session(model_name="gpt-4o")
+        await mgr.update_model("claude-3")
+        # 重新加载后仍为切换后的模型
+        mgr2 = SessionManager(backend=mgr._backend, user_id=mgr._user_id)
+        loaded = await mgr2.load_session(session.id)
+        assert loaded.model_name == "claude-3"
+
+    async def test_update_model_no_session_raises(self, mgr: SessionManager):
+        with pytest.raises(RuntimeError, match="没有当前会话"):
+            await mgr.update_model("gpt-4o")
+
+
+# =====================================================================
 # C5 — 删除会话
 # =====================================================================
 
