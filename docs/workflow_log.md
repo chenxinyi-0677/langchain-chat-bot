@@ -173,3 +173,20 @@
   - `src/core/session_manager.py`（新增 update_model 方法 + 3 项测试）
 - **对应 commit**: `95590b3`
 - **对应 tag**: `v0.8-chat-engine`
+
+---
+
+## [步骤8] UI 协议接口 — 2026-07-10
+
+- **对应需求**: H1（UI 协议接口定义）
+- **设计要点**:
+  - 使用 `typing.Protocol` 而非 ABC——实现方无需继承，结构匹配即满足
+  - 覆盖 5 个功能域：User / Session / Chat / Preset / Token
+  - switch_user 要求实现方原子性重建 SessionManager + ChatEngine（避免二者指向不同用户）
+  - 协议只定义接口，不实现逻辑（符合 AGENTS.md "H1 只定义接口签名"）
+  - TUIApp 隐式实现此协议，通过委托持有各 Manager 实例
+- **变更文件**:
+  - `src/interface/__init__.py`（新建）
+  - `src/interface/ui_protocol.py`（新建，~140 行，17 个方法/属性）
+- **对应 commit**: `7cb7438`
+- **对应 tag**: `v0.9-ui-protocol`
