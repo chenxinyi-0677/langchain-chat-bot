@@ -134,3 +134,21 @@
   - `sqlite_backend.py:update_preset` 同样存在 `assert result is not None` 问题（同 update_user），应改为 `raise ValueError`
 - **对应 commit**: `30a2a4b`
 - **对应 tag**: `v0.6-preset-manager`
+
+---
+
+## [步骤6] 配置管理层 — 2026-07-10
+
+- **对应需求**: A4（.env → API_BASE_URL/API_KEY/MODEL_NAME）、G1（config.yaml → llm.timeout/max_retries）、G3（区分两个来源统一建模）
+- **设计要点**:
+  - 统一管理 .env（pydantic-settings BaseSettings）和 config.yaml（PyYAML → Pydantic），对外暴露 `AppConfig` 单一模型
+  - storage 配置也归 ConfigManager 管理（StorageFactory 依赖 config dict）
+  - `load()` 为同步方法：仅涉及本地文件读取 + yaml.parse，无阻塞 IO 等待，加 async 徒增开销
+  - 首次创建 `config.yaml` 和 `.env.example` 配置文件
+- **变更文件**:
+  - `src/core/config_manager.py`（新建，~115 行，含 5 个配置模型 + ConfigManager）
+  - `tests/test_config_manager.py`（新建，13 项测试，4 个测试类）
+  - `config.yaml`（新建，默认配置模板）
+  - `.env.example`（新建，环境变量模板，.env 本身不提交）
+- **对应 commit**: `51ca994`
+- **对应 tag**: `v0.7-config-manager`

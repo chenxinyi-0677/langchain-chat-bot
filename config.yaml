@@ -1,0 +1,20 @@
+# 全局配置
+# 敏感信息请放在 .env 文件中，不要提交到版本控制
+
+llm:
+  # LLM 调用超时时间（秒）
+  timeout: 120
+  # 调用失败时的最大重试次数
+  max_retries: 3
+
+storage:
+  # 存储后端类型: sqlite / mysql（预留）
+  type: sqlite
+  sqlite:
+    path: data/sqlite/chat.db
+  # mysql:
+  #   host: localhost
+  #   port: 3306
+  #   user: root
+  #   password: ""
+  #   database: langchain_chat
