@@ -11,26 +11,42 @@ TUI 复用组件 —— widgets
 
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.history import FileHistory
-from prompt_toolkit.shortcuts import prompt as pt_prompt
+from prompt_toolkit.shortcuts import PromptSession
 from rich.console import Console
 
 console = Console()
 
 _COMMANDS = ["chat", "sessions", "presets", "search", "export", "compare", "switch", "exit"]
 _command_completer = WordCompleter(_COMMANDS, ignore_case=True)
+_cmd_session: PromptSession[str] | None = None
+_input_session: PromptSession[str] | None = None
 
 
-def get_command_prompt() -> str:
+def _get_cmd_session() -> PromptSession[str]:
+    global _cmd_session
+    if _cmd_session is None:
+        _cmd_session = PromptSession(completer=_command_completer, history=FileHistory(".cmd_history"))
+    return _cmd_session
+
+
+def _get_input_session() -> PromptSession[str]:
+    global _input_session
+    if _input_session is None:
+        _input_session = PromptSession()
+    return _input_session
+
+
+async def get_command_prompt() -> str:
     """显示命令提示符并返回用户输入的命令名"""
-    return pt_prompt("> ", completer=_command_completer, history=FileHistory(".cmd_history")).strip().lower()
+    return (await _get_cmd_session().prompt_async("> ")).strip().lower()
 
 
-def get_input(prompt_text: str = "") -> str:
-    """简单文本输入（不用补全和历史）"""
-    return pt_prompt(prompt_text).strip()
+async def get_input(prompt_text: str = "") -> str:
+    """简单文本输入（异步）"""
+    return (await _get_input_session().prompt_async(prompt_text)).strip()
 
 
-def get_input_with_default(prompt_text: str, default: str) -> str:
-    """带默认值的文本输入"""
-    val = pt_prompt(prompt_text).strip()
-    return val or default
+async def get_input_with_default(prompt_text: str, default: str) -> str:
+    """带默认值的文本输入（异步）"""
+    val = await _get_input_session().prompt_async(prompt_text)
+    return val.strip() or default

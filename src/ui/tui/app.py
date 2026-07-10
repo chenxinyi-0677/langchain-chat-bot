@@ -72,16 +72,16 @@ class TUIApp:
     async def _login_flow(self) -> None:
         users = await self._backend.list_users()
         if not users:
-            username = get_input("欢迎！请输入用户名创建账号: ")
+            username = await get_input("欢迎！请输入用户名创建账号: ")
             while not username:
-                username = get_input("用户名不能为空: ")
+                username = await get_input("用户名不能为空: ")
             user = await self._user_mgr.create_user(username=username)
             show_success(f"用户 '{user.username}' 创建成功！")
         else:
             show_message("已有用户:")
             for i, u in enumerate(users, 1):
                 show_message(f"  {i}. {u.username}")
-            choice = get_input("请输入用户名或编号: ")
+            choice = await get_input("请输入用户名或编号: ")
             if choice.isdigit():
                 idx = int(choice) - 1
                 if 0 <= idx < len(users):
@@ -112,7 +112,7 @@ class TUIApp:
     async def _main_loop(self) -> None:
         show_success(f"当前用户: {self._current_user.username}")
         while True:
-            cmd = get_command_prompt()
+            cmd = await get_command_prompt()
             if cmd == "exit":
                 show_message("再见！")
                 break
@@ -141,7 +141,7 @@ class TUIApp:
         assert self._session_mgr is not None
 
         if self._session_mgr.current_session is None:
-            model_name = get_input_with_default(
+            model_name = await get_input_with_default(
                 f"模型名（默认 {self._config.env.model_name}）: ",
                 self._config.env.model_name,
             )
@@ -156,7 +156,7 @@ class TUIApp:
                 for i, p in enumerate(all_presets, 1):
                     marker = " [内置]" if p.is_builtin else ""
                     show_message(f"  {i}. {p.name}{marker}")
-                choice = get_input("选择预设编号（回车 = 不使用）: ")
+                choice = await get_input("选择预设编号（回车 = 不使用）: ")
                 if choice.isdigit() and 1 <= int(choice) <= len(all_presets):
                     preset_id = all_presets[int(choice) - 1].id
 
@@ -168,7 +168,7 @@ class TUIApp:
 
         show_message("对话模式（输入空行返回主菜单）:")
         while True:
-            content = get_input("你: ")
+            content = await get_input("你: ")
             if not content:
                 break
             show_user_message(content)
@@ -199,7 +199,7 @@ class TUIApp:
 
     async def _cmd_search(self) -> None:
         assert self._session_mgr is not None
-        keyword = get_input("搜索关键词: ")
+        keyword = await get_input("搜索关键词: ")
         if not keyword:
             return
         results = await self._session_mgr.search_messages(keyword)
@@ -212,7 +212,7 @@ class TUIApp:
     async def _cmd_export(self) -> None:
         assert self._session_mgr is not None
         assert self._exporter is not None
-        session_id_str = get_input("要导出的会话 ID: ")
+        session_id_str = await get_input("要导出的会话 ID: ")
         if not session_id_str or not session_id_str.isdigit():
             show_error("无效的会话 ID")
             return
@@ -228,10 +228,10 @@ class TUIApp:
     # ==================================================================
 
     async def _cmd_compare(self) -> None:
-        prompt = get_input("对比提示词: ")
+        prompt = await get_input("对比提示词: ")
         if not prompt:
             return
-        raw = get_input("模型名（逗号分隔，如 gpt-4o,deepseek-chat）: ")
+        raw = await get_input("模型名（逗号分隔，如 gpt-4o,deepseek-chat）: ")
         if not raw:
             return
         model_names = [m.strip() for m in raw.split(",") if m.strip()]
@@ -249,12 +249,12 @@ class TUIApp:
 
     async def _cmd_switch_user(self) -> None:
         assert self._user_mgr is not None
-        username = get_input("目标用户名: ")
+        username = await get_input("目标用户名: ")
         if not username:
             return
         user = await self._user_mgr.get_user_by_username(username)
         if user is None:
-            confirm = get_input(f"用户 '{username}' 不存在，是否创建？(y/n): ")
+            confirm = await get_input(f"用户 '{username}' 不存在，是否创建？(y/n): ")
             if confirm.lower() != "y":
                 return
             user = await self._user_mgr.create_user(username=username)

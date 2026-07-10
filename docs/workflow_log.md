@@ -350,3 +350,17 @@
   - `src/ui/tui/chat_view.py`（重写：Live 流式 Panel）
   - `src/ui/tui/menu_view.py`（重写：Table + Panel 渲染器）
 - **对应 tag**: `v0.16-tui-polish`
+
+---
+
+## [步骤16] 修复异步架构 Bug — 2026-07-10
+
+- **对应需求**: 全部（全链路异步约束修复）
+- **背景**: `widgets.py` 使用同步 `prompt_toolkit.shortcuts.prompt()`，该函数内部调用 `asyncio.run()`，与 `main.py` 已运行的事件循环冲突，导致 `asyncio.run() cannot be called from a running event loop` 崩溃
+- **修复内容**:
+  - `widgets.py`: 三个输入函数改为 `async def`，使用 `PromptSession.prompt_async()` 替代同步 `prompt()`
+  - `widgets.py`: `_cmd_session` / `_input_session` 改为惰性初始化（`None` → 首次调用时创建），避免模块导入时因无终端环境崩溃
+  - `app.py`: 全部 13 处 `get_input()`, `get_command_prompt()`, `get_input_with_default()` 调用加 `await`
+  - `chat_view.py` / `menu_view.py`: 审查确认无同步/异步混用隐患（纯 `rich` API，不涉及事件循环）
+- **变更文件**: `src/ui/tui/widgets.py`, `src/ui/tui/app.py`
+- **对应 tag**: `v0.17-async-fix`
