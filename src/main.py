@@ -17,7 +17,7 @@ from src.ui.tui.app import TUIApp
 
 async def main() -> None:
     config = ConfigManager().load()
-    backend = StorageFactory.create(config.storage.model_dump())
+    backend = StorageFactory.create({"storage": config.storage.model_dump()})
     await backend.init_db()
     app = TUIApp(backend=backend, config=config)
     await app.run()

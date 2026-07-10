@@ -3,7 +3,7 @@
 
 【What】
 验证 SQLiteBackend 所有 CRUD 方法的正确性，包括级联删除、唯一性约束、
-title 兜底等逻辑。
+title 兜底、自动建目录等逻辑。
 
 【Why】
 确保存储层行为与需求文档 4.1~4.3 节一致，防止重构时引入回归。
@@ -11,6 +11,8 @@ title 兜底等逻辑。
 【Where】
 对应 src/storage/sqlite_backend.py 中 SQLiteBackend 的全部公开方法。
 """
+
+from pathlib import Path
 
 import pytest
 
@@ -286,3 +288,22 @@ class TestUserConfigStorage:
         await tmp_sqlite_backend.upsert_user_config(UserConfigCreate(user_id=u2.id, key="k", value="v2"))
         assert (await tmp_sqlite_backend.get_user_config(u1.id, "k")).value == "v1"
         assert (await tmp_sqlite_backend.get_user_config(u2.id, "k")).value == "v2"
+
+
+# =====================================================================
+# init_db —— 自动创建父目录
+# =====================================================================
+
+
+class TestInitDb:
+    """init_db 健壮性"""
+
+    async def test_init_db_creates_parent_directory(self, tmp_path: Path):
+        """深层不存在的路径应能自动创建父目录"""
+        db_path = tmp_path / "a" / "b" / "c" / "test.db"
+        assert not db_path.parent.exists()
+        backend = SQLiteBackend(path=str(db_path))
+        await backend.init_db()
+        assert db_path.parent.exists()
+        assert db_path.exists()
+        await backend.close()

@@ -28,8 +28,9 @@ from src.core.config_manager import (
 class TestEnvSettings:
     """pydantic-settings .env 加载"""
 
-    def test_default_values(self):
-        env = EnvSettings()
+    def test_default_values(self, tmp_path: Path):
+        dotenv = tmp_path / ".env"  # 不存在的文件，防止读到真实 .env
+        env = EnvSettings(_env_file=str(dotenv))
         assert env.api_base_url == "https://api.openai.com/v1"
         assert env.api_key == ""
         assert env.model_name == "gpt-4o"

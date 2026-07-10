@@ -16,6 +16,7 @@ SQLite 存储后端实现 —— SQLiteBackend
 """
 
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 import aiosqlite
@@ -124,7 +125,8 @@ class SQLiteBackend(StorageBackend):
     # ==================================================================
 
     async def init_db(self) -> None:
-        """打开数据库连接并执行建表 DDL"""
+        """初始化数据库连接并执行建表 DDL"""
+        Path(self._path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = await aiosqlite.connect(self._path)
         self._conn.row_factory = aiosqlite.Row
         await self._conn.executescript(_DDL_CREATE_TABLES)
