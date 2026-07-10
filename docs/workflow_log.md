@@ -377,3 +377,15 @@
   - 移除无意义的 `panel.renderable = ai_text`
 - **变更文件**: `src/ui/tui/chat_view.py`
 - **对应 tag**: `v0.18-live-fix`
+
+---
+
+## [步骤18] 修复 Live + 日志终端冲突 — 2026-07-10
+
+- **对应需求**: A2 / G2（流式输出视觉效果 + 日志不干扰 UI）
+- **背景**: `logging.StreamHandler` 向 stdout 写 JSON 日志行，与 `rich.live.Live` 共用同一终端流且无协调，导致日志行出现在 Panel 边框内
+- **修复**:
+  - `chat_view.py`: 前次已修复（`live.update()` + 无多余 `console.print`），确认无问题
+  - `config/logging.yaml`: 移除 `console: StreamHandler`；`src` logger 只保留 `file` handler；root logger 不再设 handler，彻底消除终端日志污染
+- **变更文件**: `config/logging.yaml`
+- **对应 tag**: `v0.19-log-conflict-fix`
