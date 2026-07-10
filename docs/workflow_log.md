@@ -208,3 +208,42 @@
   - `src/ui/tui/app.py`（新建，~220 行，登录/主循环/chat/sessions/presets/switch）
 - **对应 commit**: `6a11f2b`
 - **对应 tag**: `v0.10-tui-skeleton`
+
+---
+
+## [步骤10] 冒烟测试与环境修复 — 2026-07-10
+
+- **对应需求**: 全部（端到端验证）
+- **发现的三个环境问题**:
+
+  ### 问题1: SQLite 父目录未自动创建
+  - **现象**: `sqlite3.OperationalError: unable to open database file`
+  - **根因**: `init_db()` 直接用 `aiosqlite.connect(self._path)`，SQLite 只创建库文件本身，不自动创建父目录 `data/sqlite/`
+  - **修复**: `init_db()` 中 `connect()` 前插入 `Path(self._path).parent.mkdir(parents=True, exist_ok=True)`
+  - **回归测试**: `TestInitDb::test_init_db_creates_parent_directory`
+  - **对应 commit**: `ea3ae5c`
+
+  ### 问题2: ConfigManager 路径依赖 cwd
+  - **现象**: 从非项目根目录启动时，`from src.core.config_manager import ...` 正常（已解决），但 `.env` / `config.yaml` 还是基于 cwd 的相对路径，找不到文件 → `api_key = ""` → ChatOpenAI 报 Missing credentials
+  - **根因**: `ConfigManager.__init__` 默认参数 `env_file = ".env"` 为相对路径，取决于运行时 cwd
+  - **修复**: 在模块级计算 `_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent`，默认路径基于项目根目录；`load()` 提前检测 `.env` 是否存在，不存在则抛 `FileNotFoundError`（替代 ChatOpenAI 的 Missing credentials）
+  - **测试调整**: `test_load_defaults_when_no_files` → `test_load_defaults_when_no_yaml`（需最小 `.env`）；新增 `test_load_missing_dotenv_raises`
+  - **对应 commit**: `fd781c2`
+
+  ### 问题3: `python src/main.py` 报 ModuleNotFoundError
+  - **现象**: `ModuleNotFoundError: No module named 'src'`
+  - **根因**: 直接运行脚本时 Python 将脚本所在目录（`src/`）加入 `sys.path`，而非项目根目录，`from src.xxx import` 找不到包
+  - **修复**: `main.py` 顶部加入 `if __name__ == "__main__" and not __package__: sys.path.insert(0, str(Path(__file__).resolve().parent.parent))`，同时兼容两种启动方式
+  - **标准化**: 推荐 `uv run python -m src.main` 作为唯一标准启动命令（已在 README.md 中写明），`-m` 方式是 Python 社区推荐做法
+  - **对应 commit**: `e6e5d1a`
+
+- **变更文件**:
+  - `README.md`（新建：启动命令 + 首次使用 + 测试说明）
+  - `docs/workflow_log.md`（本条记录）
+  - `src/storage/sqlite_backend.py`（init_db 自动建目录）
+  - `tests/test_storage.py`（回归测试 + Path 导入）
+  - `src/core/config_manager.py`（项目根路径解析 + 缺失检测）
+  - `tests/test_config_manager.py`（测试隔离 + 新增测项）
+  - `src/main.py`（sys.path 兼容）
+- **对应 commit**: `e6e5d1a`（最后一步 docs 类提交）
+- **遗留问题/待办**: 无（121 项单元测试 + 2 项新测试全部通过）
