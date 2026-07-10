@@ -243,12 +243,15 @@ class SQLiteBackend(StorageBackend):
     async def update_user(self, user: User) -> User:
         conn = await self._ensure_conn()
         now = _utc_now_str()
-        await conn.execute(
-            """UPDATE users SET username=?, default_model=?, default_preset_id=?, updated_at=?
-               WHERE id=?""",
-            (user.username, user.default_model, user.default_preset_id, now, user.id),
-        )
-        await conn.commit()
+        try:
+            await conn.execute(
+                """UPDATE users SET username=?, default_model=?, default_preset_id=?, updated_at=?
+                   WHERE id=?""",
+                (user.username, user.default_model, user.default_preset_id, now, user.id),
+            )
+            await conn.commit()
+        except aiosqlite.IntegrityError:
+            raise ValueError(f"用户名 '{user.username}' 已存在")
         result = await self.get_user(user.id)
         assert result is not None
         return result

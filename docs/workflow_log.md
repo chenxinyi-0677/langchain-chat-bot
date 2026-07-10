@@ -95,3 +95,24 @@
   - `tests/conftest.py`（新增 test_user fixture）
   - `tests/test_session_manager.py`（新建，28 项测试）
 - **对应 tag**: `v0.4-session-manager`
+
+---
+
+## [步骤4] 用户管理层 — 2026-07-10
+
+- **对应需求**: B1（创建用户）、B2（获取用户/切换前置）、B3（删除用户）、B4（用户隔离）
+- **设计要点**:
+  - UserManager 不缓存当前用户状态，每次操作直通存储层
+  - "当前用户"概念归属应用层（TUI app.py），切换用户时由应用层重建 SessionManager
+  - 唯一性校验策略：DB UNIQUE 约束兜底（方案 A），Manager 层额外做正则校验 `^[a-zA-Z0-9_-]+$`
+  - 新增 `update_user` 方法暴露给用户设置功能修改 default_model / default_preset_id
+  - 补上 `sqlite_backend.py` 的 `update_user` IntegrityError → ValueError 转换，与 `create_user` 保持一致
+  - 删除用户：先查存在性 + 防御性 `ValueError`，级联删除由 ON DELETE CASCADE 处理
+- **变更文件**:
+  - `src/core/user_manager.py`（新建，~100 行）
+  - `tests/test_user_manager.py`（新建，11 项测试）
+  - `src/storage/sqlite_backend.py`（update_user 加 IntegrityError 捕获）
+- **待办**:
+  - `sqlite_backend.py:update_user` 对不存在的 user.id 用 `assert` 做业务校验，应改为 `raise ValueError`（当前静默通过 UPDATE 0 行后 assert 失败，语义不清）
+- **对应 commit**: `c578db6`
+- **对应 tag**: `v0.5-user-manager`
