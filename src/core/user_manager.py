@@ -19,6 +19,7 @@ B1(创建用户)  B2(切换用户前置)  B3(删除用户)  B4(用户隔离)
 - update_user 由用户设置功能调用，修改 default_model / default_preset_id
 """
 
+import logging
 import re
 from typing import Optional
 
@@ -26,6 +27,7 @@ from src.models.schemas import User, UserCreate
 from src.storage.base import StorageBackend
 
 _USERNAME_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+_LOGGER = logging.getLogger(__name__)
 
 
 class UserManager:
@@ -65,13 +67,15 @@ class UserManager:
             raise ValueError(
                 "用户名仅允许字母、数字、下划线和连字符"
             )
-        return await self._backend.create_user(
+        user = await self._backend.create_user(
             UserCreate(
                 username=username,
                 default_model=default_model,
                 default_preset_id=default_preset_id,
             ),
         )
+        _LOGGER.info("User created", extra={"username": user.username, "user_id": user.id})
+        return user
 
     # ==================================================================
     # B2 — 获取用户（切换用户的前置条件）
@@ -118,5 +122,7 @@ class UserManager:
         """
         user = await self._backend.get_user(user_id)
         if user is None:
+            _LOGGER.warning("Delete failed: user not found", extra={"user_id": user_id})
             raise ValueError(f"用户 {user_id} 不存在")
         await self._backend.delete_user(user_id)
+        _LOGGER.info("User deleted", extra={"user_id": user_id, "username": user.username})

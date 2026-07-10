@@ -1,0 +1,32 @@
+# 日志配置
+# 由 src/core/logger.py 在启动时读取，传给 logging.config.dictConfig
+
+version: 1
+formatters:
+  json:
+    format: "%(asctime)s %(levelname)s %(name)s %(message)s"
+    class: src.core.logger.JSONFormatter
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: json
+    stream: ext://sys.stdout
+  file:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: json
+    filename: data/logs/langchain-chat.log
+    maxBytes: 10485760
+    backupCount: 5
+loggers:
+  src:
+    level: DEBUG
+    handlers:
+      - console
+      - file
+    propagate: false
+root:
+  level: WARNING
+  handlers:
+    - console

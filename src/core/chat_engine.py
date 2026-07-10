@@ -18,6 +18,7 @@ G1(超时 + 重试)  E2(Token 统计)
 - TUI 调用 switch_model() 实现 A5 会话内切换模型
 """
 
+import logging
 from typing import AsyncIterator
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
@@ -25,6 +26,8 @@ from langchain_openai import ChatOpenAI
 
 from src.core.config_manager import AppConfig
 from src.core.session_manager import SessionManager
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class ChatEngine:
@@ -108,18 +111,27 @@ class ChatEngine:
 
         # 3. 构造 LLM
         llm = self._build_llm()
+        session_id = self._session_mgr.current_session.id
+        model_name = self._session_mgr.current_session.model_name
+        _LOGGER.info("Chat started", extra={"session_id": session_id, "model_name": model_name})
 
         # 4. 流式调用
         collected: list[str] = []
         usage_metadata = None
-        async for chunk in llm.astream(messages):
-            content_chunk = chunk.content if hasattr(chunk, "content") else ""
-            if content_chunk:
-                collected.append(content_chunk)
-                yield content_chunk
-            # 提取 usage_metadata（最后一条 chunk 携带）
-            if hasattr(chunk, "usage_metadata") and chunk.usage_metadata:
-                usage_metadata = chunk.usage_metadata
+        try:
+            async for chunk in llm.astream(messages):
+                content_chunk = chunk.content if hasattr(chunk, "content") else ""
+                if content_chunk:
+                    collected.append(content_chunk)
+                    yield content_chunk
+                if hasattr(chunk, "usage_metadata") and chunk.usage_metadata:
+                    usage_metadata = chunk.usage_metadata
+        except Exception as e:
+            _LOGGER.error(
+                "LLM call failed",
+                extra={"session_id": session_id, "model_name": model_name, "error": str(e)},
+            )
+            raise
 
         # 5. 提取 token 统计
         full_response = "".join(collected)
@@ -135,6 +147,12 @@ class ChatEngine:
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
         )
+        _LOGGER.info("Chat completed", extra={
+            "session_id": session_id,
+            "model_name": model_name,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+        })
 
     # ==================================================================
     # A5 — 切换模型

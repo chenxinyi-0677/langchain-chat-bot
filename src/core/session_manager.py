@@ -18,10 +18,13 @@ C5(删除会话)  C6(自动保存)  C7(标题自动生成)  E1(对话搜索)  E2
 - TUI 调用 create_session 发起新对话
 """
 
+import logging
 from typing import Optional
 
 from src.models.schemas import Message, MessageCreate, Session, SessionCreate
 from src.storage.base import StorageBackend
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class SessionManager:
@@ -83,6 +86,10 @@ class SessionManager:
         )
         self._current_session = session
         self._title_generated = False
+        _LOGGER.info(
+            "Session created",
+            extra={"session_id": session.id, "user_id": self._user_id, "model_name": model_name},
+        )
         return session
 
     # ==================================================================
@@ -181,6 +188,8 @@ class SessionManager:
         if self._current_session is not None and self._current_session.id == session_id:
             self._current_session = None
             self._title_generated = False
+
+        _LOGGER.info("Session deleted", extra={"session_id": session_id, "user_id": self._user_id})
 
     # ==================================================================
     # C6 — 自动保存 + C7 — 标题自动生成 + E2 — Token 累计

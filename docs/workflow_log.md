@@ -284,3 +284,32 @@
   - `src/ui/tui/app.py`（新增 export 子命令 + Exporter 实例化）
   - `tests/test_exporter.py`（新建，11 项测试：文件名清理 ×4、格式化 ×3、集成 ×4）
 - **对应 tag**: `v0.12-exporter`
+
+---
+
+## [步骤13] G2 结构化日志 — 2026-07-10
+
+- **对应需求**: G2（JSON 格式结构化日志，config/logging.yaml 独立管理）
+- **设计要点**:
+  - 标准库 `logging` + 自定义 `JSONFormatter`，不引入第三方日志库
+  - JSONFormatter 输出单行 JSON：`timestamp` / `level` / `logger` / `message` + `extra` 自动合并
+  - `extra` 参数传入的自定义属性（如 `user_id`、`session_id`）自动出现在 JSON 中（通过过滤 `_STANDARD_RECORD_KEYS` 实现）
+  - 日志配置独立文件 `config/logging.yaml`，支持 console + file 双 handler，file 使用 RotatingFileHandler（10MB 轮转）
+  - `setup_logging()` 在读取 `logging.yaml` 前先 `mkdir(parents=True, exist_ok=True)` 创建 `data/logs/`，避免 RotatingFileHandler 踩 SQLite 同款坑
+  - 埋点范围（只覆盖关键操作 + 错误）：
+    - UserManager: create_user (INFO) / delete_user (INFO + WARNING)
+    - SessionManager: create_session (INFO) / delete_session (INFO)
+    - PresetManager: create_preset (INFO) / delete_preset (INFO)
+    - ChatEngine: chat 启动 (INFO) / 完成 (INFO, 含 token) / LLM 失败 (ERROR)
+    - Exporter: export (INFO)
+- **变更文件**:
+  - `config/logging.yaml`（新建，日志配置）
+  - `src/core/logger.py`（新建，JSONFormatter + setup_logging）
+  - `src/main.py`（启动时调用 setup_logging）
+  - `src/core/user_manager.py`（加日志埋点）
+  - `src/core/session_manager.py`（加日志埋点）
+  - `src/core/preset_manager.py`（加日志埋点）
+  - `src/core/chat_engine.py`（加日志埋点）
+  - `src/core/exporter.py`（加日志埋点）
+  - `tests/test_logger.py`（新建，4 项测试：JSON 结构 + extra 字段 + 目录创建 + 配置回退）
+- **对应 tag**: `v0.13-logging`

@@ -16,12 +16,15 @@ F1(导出Markdown)  F2(写入 data/users/{username}/exports/)
 - 输出目录 data/users/{username}/exports/ 由 .gitignore 排除
 """
 
+import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 
 from src.models.schemas import Message, Session
 from src.storage.base import StorageBackend
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class Exporter:
@@ -127,5 +130,7 @@ class Exporter:
 
         md_content = self._format_markdown(session, messages)
         filepath.write_text(md_content, encoding="utf-8")
+
+        _LOGGER.info("Session exported", extra={"session_id": session_id, "path": str(filepath)})
 
         return str(filepath.resolve())
