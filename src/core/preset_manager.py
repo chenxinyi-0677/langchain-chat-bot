@@ -53,8 +53,13 @@ class PresetManager:
         return await self._backend.get_builtin_presets()
 
     @staticmethod
-    async def sync_builtin_presets(backend: StorageBackend) -> None:
+    async def sync_builtin_presets(backend: StorageBackend, yaml_path: Optional[Path] = None) -> None:
         """将 config/presets.yaml 中的内置预设同步至数据库
+
+        Args:
+            backend: 存储后端
+            yaml_path: YAML 文件路径，默认使用 config/presets.yaml
+                       测试时可传入临时文件路径。
 
         同步规则（以 slug 为匹配键）：
         - YAML 有、DB 无              → INSERT
@@ -64,18 +69,15 @@ class PresetManager:
 
         YAML 不存在或解析失败时仅打日志，不阻止程序启动。
         """
-        if not _PRESETS_YAML.exists():
+        path = yaml_path or _PRESETS_YAML
+        if not path.exists():
             _LOGGER.warning("presets.yaml not found, skipping builtin preset sync")
             return
 
-        with open(_PRESETS_YAML, encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         yaml_presets: list[dict] = data.get("presets", [])
-        if not yaml_presets:
-            _LOGGER.info("No presets defined in presets.yaml")
-            return
-
         db_builtins = await backend.get_builtin_presets()
         db_by_slug: dict[str, Preset] = {p.slug: p for p in db_builtins if p.slug}
 
@@ -104,13 +106,13 @@ class PresetManager:
                         is_builtin=True,
                     ),
                 )
-                _LOGGER.info("Builtin preset created", extra={"slug": slug, "name": name})
+                _LOGGER.info("Builtin preset created", extra={"slug": slug, "preset_name": name})
             elif existing.system_prompt != system_prompt:
                 existing.name = name
                 existing.description = description
                 existing.system_prompt = system_prompt
                 await backend.update_preset(existing)
-                _LOGGER.info("Builtin preset updated", extra={"slug": slug, "name": name})
+                _LOGGER.info("Builtin preset updated", extra={"slug": slug, "preset_name": name})
             else:
                 _LOGGER.debug("Builtin preset unchanged", extra={"slug": slug})
 
@@ -118,7 +120,10 @@ class PresetManager:
         for db_p in db_builtins:
             if db_p.slug and db_p.slug not in yaml_slugs:
                 await backend.delete_preset(db_p.id)
-                _LOGGER.info("Builtin preset removed (no longer in yaml)", extra={"slug": db_p.slug, "name": db_p.name})
+                _LOGGER.info(
+                    "Builtin preset removed (no longer in yaml)",
+                    extra={"slug": db_p.slug, "preset_name": db_p.name},
+                )
 
     # ==================================================================
     # D2/D4 — 用户自定义预设列表
@@ -165,7 +170,7 @@ class PresetManager:
                 system_prompt=system_prompt,
             ),
         )
-        _LOGGER.info("Preset created", extra={"preset_id": preset.id, "name": name, "user_id": self._user_id})
+        _LOGGER.info("Preset created", extra={"preset_id": preset.id, "preset_name": name, "user_id": self._user_id})
         return preset
 
     # ==================================================================
@@ -209,7 +214,10 @@ class PresetManager:
         """
         preset = await self._assert_can_modify(preset_id)
         await self._backend.delete_preset(preset_id)
-        _LOGGER.info("Preset deleted", extra={"preset_id": preset_id, "name": preset.name, "user_id": self._user_id})
+        _LOGGER.info(
+            "Preset deleted",
+            extra={"preset_id": preset_id, "preset_name": preset.name, "user_id": self._user_id},
+        )
 
     # ==================================================================
     # 内部辅助
