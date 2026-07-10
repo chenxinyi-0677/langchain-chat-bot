@@ -190,3 +190,21 @@
   - `src/interface/ui_protocol.py`（新建，~140 行，17 个方法/属性）
 - **对应 commit**: `7cb7438`
 - **对应 tag**: `v0.9-ui-protocol`
+
+---
+
+## [步骤9] TUI 骨架 — 2026-07-10
+
+- **对应需求**: B1（创建用户）、B2（切换用户）、C1（新建会话）、D3（预设选择）、H1（UI 协议骨架实现）
+- **设计要点**:
+  - 登录流程：首次启动自动走创建，已有用户时选择或输入新用户名
+  - switch_user 原子性重建 SessionManager + PresetManager + ChatEngine
+  - chat 命令前置检查：无当前会话时先走"输入模型名 → 选预设 → create_session"流程
+  - 当前骨架使用简单 print/input 占位，后续用 rich + prompt_toolkit 美化
+- **变更文件**:
+  - `src/main.py`（新建，启动流程：ConfigManager → StorageFactory → init_db → TUIApp）
+  - `src/ui/__init__.py`（新建）
+  - `src/ui/tui/__init__.py`（新建）
+  - `src/ui/tui/app.py`（新建，~220 行，登录/主循环/chat/sessions/presets/switch）
+- **对应 commit**: `6a11f2b`
+- **对应 tag**: `v0.10-tui-skeleton`
