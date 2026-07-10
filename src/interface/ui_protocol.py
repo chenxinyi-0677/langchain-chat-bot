@@ -99,6 +99,10 @@ class UIProtocol(Protocol):
         """E1: 在当前用户所有会话中按关键词搜索消息"""
         ...
 
+    async def export_session(self, session_id: int) -> str:
+        """F1/F2: 将会话导出为 Markdown 文件，返回文件路径"""
+        ...
+
     async def switch_model(self, model_name: str) -> None:
         """A5: 切换当前会话的模型"""
         ...

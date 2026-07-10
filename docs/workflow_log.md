@@ -265,3 +265,22 @@
   - `src/ui/tui/app.py`（新增 search 命令 + 结果展示）
   - `tests/test_session_manager.py`（新增 TestSearchMessages，2 项 mock 测试）
 - **对应 tag**: `v0.11-search`
+
+---
+
+## [步骤12] F1/F2 对话导出 — 2026-07-10
+
+- **对应需求**: F1（导出 Markdown）、F2（导出到 data/users/{username}/exports/）
+- **设计要点**:
+  - 新建 `src/core/exporter.py` 单独模块，不塞进 SessionManager（涉及文件 I/O + Markdown 格式化 + 文件名清理，非透传）
+  - 时间戳处理：数据库存 UTC，导出时 `.astimezone()` 转本地时区后 `strftime` 输出
+  - Token 统计来源区分：标题区读 `Session.total_prompt_tokens / total_completion_tokens`（会话累计），每条 AI 消息末尾读 `Message.prompt_tokens / completion_tokens`（单条明细）
+  - 文件名清理：`re.sub(r'[\\/:*?"<>|]', '_', title)` 后 `.strip()`，空标题兜底为"未命名会话"
+  - 导出目录自动创建 `mkdir(parents=True, exist_ok=True)`（吸取 init_db 教训）
+  - Exporter 构造函数注入 backend + user_id + username；归属校验：`session.user_id != self._user_id`
+- **变更文件**:
+  - `src/core/exporter.py`（新建，Exporter 类）
+  - `src/interface/ui_protocol.py`（新增 export_session 签名）
+  - `src/ui/tui/app.py`（新增 export 子命令 + Exporter 实例化）
+  - `tests/test_exporter.py`（新建，11 项测试：文件名清理 ×4、格式化 ×3、集成 ×4）
+- **对应 tag**: `v0.12-exporter`

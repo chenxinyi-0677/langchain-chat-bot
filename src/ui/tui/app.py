@@ -17,6 +17,7 @@ from typing import Optional
 
 from src.core.chat_engine import ChatEngine
 from src.core.config_manager import AppConfig
+from src.core.exporter import Exporter
 from src.core.preset_manager import PresetManager
 from src.core.session_manager import SessionManager
 from src.core.user_manager import UserManager
@@ -39,6 +40,7 @@ class TUIApp:
         self._session_mgr: Optional[SessionManager] = None
         self._preset_mgr: Optional[PresetManager] = None
         self._chat_engine: Optional[ChatEngine] = None
+        self._exporter: Optional[Exporter] = None
 
     # ==================================================================
     # 入口
@@ -92,6 +94,7 @@ class TUIApp:
         self._session_mgr = SessionManager(backend=self._backend, user_id=user.id)
         self._preset_mgr = PresetManager(backend=self._backend, user_id=user.id)
         self._chat_engine = ChatEngine(session_mgr=self._session_mgr, config=self._config)
+        self._exporter = Exporter(backend=self._backend, user_id=user.id, username=user.username)
 
     # ==================================================================
     # 主循环
@@ -113,10 +116,12 @@ class TUIApp:
                 await self._cmd_presets()
             elif cmd == "search":
                 await self._cmd_search()
+            elif cmd == "export":
+                await self._cmd_export()
             elif cmd == "switch":
                 await self._cmd_switch_user()
             else:
-                print("可用命令: chat  sessions  presets  search  switch  exit")
+                print("可用命令: chat  sessions  presets  search  export  switch  exit")
 
     # ==================================================================
     # chat 命令
@@ -226,6 +231,25 @@ class TUIApp:
                 content = msg.content[:80] + "..." if len(msg.content) > 80 else msg.content
                 print(f"│ {role}: {content}")
             print(f"└─ {len(messages)} 条匹配")
+
+    # ==================================================================
+    # export 命令 —— F1/F2 对话导出
+    # ==================================================================
+
+    async def _cmd_export(self) -> None:
+        """将会话导出为 Markdown 文件"""
+        assert self._session_mgr is not None
+        assert self._exporter is not None
+        session_id_str = input("要导出的会话 ID: ").strip()
+        if not session_id_str or not session_id_str.isdigit():
+            print("无效的会话 ID")
+            return
+        session_id = int(session_id_str)
+        try:
+            path = await self._exporter.export(session_id)
+            print(f"导出成功: {path}")
+        except ValueError as e:
+            print(e)
 
     # ==================================================================
     # switch 命令
