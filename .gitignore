@@ -4,4 +4,5 @@ __pycache__/
 .env
 data/
 
-# prompt_toolkit history.cmd_history
+# prompt_toolkit history
+.cmd_history
