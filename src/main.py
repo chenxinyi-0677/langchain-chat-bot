@@ -23,6 +23,7 @@ if __name__ == "__main__" and not __package__:
 
 from src.core.config_manager import ConfigManager
 from src.core.logger import get_logger, setup_logging
+from src.core.preset_manager import PresetManager
 from src.storage.factory import StorageFactory
 from src.ui.tui.app import TUIApp
 
@@ -36,6 +37,7 @@ async def main() -> None:
     config = ConfigManager().load()
     backend = StorageFactory.create({"storage": config.storage.model_dump()})
     await backend.init_db()
+    await PresetManager.sync_builtin_presets(backend)
     app = TUIApp(backend=backend, config=config)
     await app.run()
 

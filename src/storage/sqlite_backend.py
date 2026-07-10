@@ -45,8 +45,12 @@ def _utc_now_str() -> str:
 # DDL —— 五张表的建表 SQL
 # ---------------------------------------------------------------------------
 # 设计要点：
-# - 所有外键加 ON DELETE CASCADE，配合 PRAGMA foreign_keys = ON 实现自动级联
-# - default_preset_id 用 ON DELETE SET NULL：删除预设时不级联删除用户
+# - 外键配置（按字段）：
+#     sessions.user_id / messages.session_id / presets.user_id / user_configs.user_id → ON DELETE CASCADE
+#     users.default_preset_id                                                  → ON DELETE SET NULL
+#     sessions.preset_id                                                       → 无外键约束（代码手动清理）
+# - 配合 PRAGMA foreign_keys = ON 实现自动级联
+# - 注意：sessions.preset_id 没有外键约束，删除预设前需手动 UPDATE SET NULL
 # - role 列 CHECK 约束确保只存 human / ai / system
 # - user_configs 用 UNIQUE(user_id, key) 保证键值唯一
 # - 时间戳存 ISO 8601 文本，Python 侧 Pydantic 序列化/反序列化
@@ -95,6 +99,7 @@ CREATE TABLE IF NOT EXISTS presets (
     name          TEXT    NOT NULL,
     description   TEXT,
     system_prompt TEXT    NOT NULL,
+    slug          TEXT,
     is_builtin    INTEGER NOT NULL DEFAULT 0,
     created_at    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     updated_at    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
@@ -130,6 +135,16 @@ class SQLiteBackend(StorageBackend):
         self._conn = await aiosqlite.connect(self._path)
         self._conn.row_factory = aiosqlite.Row
         await self._conn.executescript(_DDL_CREATE_TABLES)
+        await self._migrate()
+
+    async def _migrate(self) -> None:
+        """数据库迁移：逐步添加缺失的列，兼容旧库"""
+        conn = self._conn
+        pragma = await conn.execute("PRAGMA table_info(presets)")
+        columns = {row[1] for row in await pragma.fetchall()}
+        if "slug" not in columns:
+            await conn.execute("ALTER TABLE presets ADD COLUMN slug TEXT")
+            await conn.commit()
 
     async def close(self) -> None:
         """关闭数据库连接"""
@@ -192,6 +207,7 @@ class SQLiteBackend(StorageBackend):
             name=row["name"],
             description=row["description"],
             system_prompt=row["system_prompt"],
+            slug=row["slug"],
             is_builtin=bool(row["is_builtin"]),
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),
@@ -418,13 +434,14 @@ class SQLiteBackend(StorageBackend):
         conn = await self._ensure_conn()
         now = _utc_now_str()
         cursor = await conn.execute(
-            """INSERT INTO presets (user_id, name, description, system_prompt, is_builtin, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO presets (user_id, name, description, system_prompt, slug, is_builtin, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 preset.user_id,
                 preset.name,
                 preset.description,
                 preset.system_prompt,
+                preset.slug,
                 int(preset.is_builtin),
                 now,
                 now,
@@ -472,8 +489,16 @@ class SQLiteBackend(StorageBackend):
         assert result is not None
         return result
 
+    async def get_preset_by_slug(self, slug: str) -> Optional[Preset]:
+        """按 slug 查找内置预设"""
+        conn = await self._ensure_conn()
+        cursor = await conn.execute("SELECT * FROM presets WHERE slug = ?", (slug,))
+        row = await cursor.fetchone()
+        return self._row_to_preset(row) if row else None
+
     async def delete_preset(self, preset_id: int) -> None:
         conn = await self._ensure_conn()
+        await conn.execute("UPDATE sessions SET preset_id = NULL WHERE preset_id = ?", (preset_id,))
         await conn.execute("DELETE FROM presets WHERE id = ?", (preset_id,))
         await conn.commit()
 

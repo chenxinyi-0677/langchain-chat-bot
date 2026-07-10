@@ -249,6 +249,11 @@ class PresetBase(BaseModel):
         ...,
         description="系统提示词，完整的角色设定指令（TEXT 无长度限制）",
     )
+    slug: Optional[str] = Field(
+        None,
+        max_length=64,
+        description="稳定标识符，仅内置预设使用（如 'translator'）。用户自定义预设为 None",
+    )
     is_builtin: bool = Field(
         False,
         description="是否为系统内置预设。True 时用户不可删除/编辑",

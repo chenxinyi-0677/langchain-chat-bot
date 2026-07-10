@@ -389,3 +389,24 @@
   - `.gitignore`: 修复 `.cmd_history` 规则（之前被 `#` 注释吞掉）
 - **变更文件**: `config/logging.yaml`, `.gitignore`
 - **对应 tag**: `v0.19-log-conflict-fix`
+
+---
+
+## [步骤19] D1 内置预设：创建 presets.yaml + 启动同步逻辑 — 2026-07-10
+
+- **对应需求**: D1（系统内置预设完整落地）
+- **背景**: D1 此前只有数据模型和查询接口，`config/presets.yaml` 从未创建，启动时也无同步逻辑，导致数据库 `presets` 表始终为空，"暂无内置预设"是必然结果
+- **修正**:
+  - `config/presets.yaml`: 创建文件，定义 2 个内置预设（`translator` / `code_expert`），每条带稳定 `slug` 标识
+  - `Preset` 模型新增 `slug: Optional[str]` 字段，仅内置预设使用，用户自定义预设为 None
+  - `PresetManager.sync_builtin_presets()`: 静态方法，以 slug 为匹配键执行全量同步（INSERT + UPDATE + DELETE），YAML 是内置预设的唯一数据源
+  - `sqlite_backend.py`: DDL 新增 `slug TEXT` 列 + `_migrate()` 自动添加；`delete_preset` 先 `UPDATE sessions SET preset_id=NULL` 再 DELETE，避免孤儿引用
+  - `main.py`: `init_db()` 后调用 `PresetManager.sync_builtin_presets(backend)`
+  - `sqlite_backend.py` 注释：修正"所有外键加 ON DELETE CASCADE"的不准确表述，如实列出各字段的外键行为
+  - `StorageBackend` 基类新增 `get_preset_by_slug` 抽象方法
+- **同步边界**（记录备忘）:
+  - 以 slug 匹配，不是 name。改名只触发 UPDATE，不会 DELETE 重建
+  - YAML 删除某条时，DB 中对应记录会被 DELETE（sessions 引用已提前清空）
+  - 幂等：多次重启不重复 INSERT
+- **变更文件**: `config/presets.yaml`, `src/models/schemas.py`, `src/storage/base.py`, `src/storage/sqlite_backend.py`, `src/core/preset_manager.py`, `src/main.py`
+- **对应 tag**: `v0.20-builtin-presets`

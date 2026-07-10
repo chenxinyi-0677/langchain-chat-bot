@@ -155,6 +155,11 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
+    async def get_preset_by_slug(self, slug: str) -> Optional[Preset]:
+        """按 slug 查找内置预设"""
+        ...
+
+    @abstractmethod
     async def get_user_presets(self, user_id: int) -> list[Preset]:
         """获取某用户的自定义预设"""
         ...
