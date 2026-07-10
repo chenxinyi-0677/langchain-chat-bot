@@ -116,3 +116,21 @@
   - `sqlite_backend.py:update_user` 对不存在的 user.id 用 `assert` 做业务校验，应改为 `raise ValueError`（当前静默通过 UPDATE 0 行后 assert 失败，语义不清）
 - **对应 commit**: `c578db6`
 - **对应 tag**: `v0.5-user-manager`
+
+---
+
+## [步骤5] 预设管理层 — 2026-07-10
+
+- **对应需求**: D1（系统内置预设）、D2（自定义预设 CRUD）、D3（预设选择）、D4（管理菜单接口）
+- **设计要点**:
+  - 三步校验（update/delete 共用）：存在性 → 非内置 → 归属当前用户
+  - 内置预设（is_builtin=True）全员共享，Manager 层拦截编辑/删除请求
+  - get_preset 不校验归属，任何人可按 preset_id 获取任意预设（用于 D3 会话创建时加载预设内容）
+  - PresetManager 绑定 user_id，create_preset 自动绑定当前用户
+- **变更文件**:
+  - `src/core/preset_manager.py`（新建，~140 行）
+  - `tests/test_preset_manager.py`（新建，17 项测试，6 个测试类）
+- **待办**:
+  - `sqlite_backend.py:update_preset` 同样存在 `assert result is not None` 问题（同 update_user），应改为 `raise ValueError`
+- **对应 commit**: `30a2a4b`
+- **对应 tag**: `v0.6-preset-manager`
