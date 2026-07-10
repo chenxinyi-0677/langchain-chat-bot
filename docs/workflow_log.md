@@ -247,3 +247,21 @@
   - `src/main.py`（sys.path 兼容）
 - **对应 commit**: `e6e5d1a`（最后一步 docs 类提交）
 - **遗留问题/待办**: 无（121 项单元测试 + 2 项新测试全部通过）
+
+---
+
+## [步骤11] E1 对话搜索 — 2026-07-10
+
+- **对应需求**: E1（在当前用户的历史会话中按关键词搜索消息）
+- **设计要点**:
+  - 存储层 `search_messages` 在 v0.3 已实现（base.py 抽象 + sqlite_backend.py SQL JOIN+LIKE），无需重复造轮
+  - 不新建 SearchManager，直接加到 SessionManager——它已有 `_backend` + `_user_id`，纯透传
+  - SessionManager.search_messages() 只有一行 `return await self._backend.search_messages(self._user_id, keyword)`
+  - UIProtocol 新增 `search_messages` 方法签名
+  - TUI 侧新增 `search` 子命令，结果按会话分组展示，消息内容截断至 80 字符
+- **变更文件**:
+  - `src/core/session_manager.py`（新增 search_messages 方法 + 更新覆盖需求注释）
+  - `src/interface/ui_protocol.py`（新增 search_messages 签名）
+  - `src/ui/tui/app.py`（新增 search 命令 + 结果展示）
+  - `tests/test_session_manager.py`（新增 TestSearchMessages，2 项 mock 测试）
+- **对应 tag**: `v0.11-search`

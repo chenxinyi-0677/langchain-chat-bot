@@ -2,11 +2,11 @@
 会话生命周期管理 —— SessionManager
 
 【What】
-管理会话的创建、加载、列表、重命名、删除、自动保存及标题自动生成。
+管理会话的创建、加载、列表、重命名、删除、自动保存、标题自动生成及搜索。
 
 【覆盖需求】
 C1(新建会话)  C2(加载历史会话)  C3(会话列表)  C4(重命名)
-C5(删除会话)  C6(自动保存)  C7(标题自动生成)  E2(Token 统计)  B4(用户隔离)
+C5(删除会话)  C6(自动保存)  C7(标题自动生成)  E1(对话搜索)  E2(Token 统计)  B4(用户隔离)
 
 【Why】
 - SessionManager 是 core/ 层对外暴露的核心组件之一，供 chat_engine 和 TUI 调用
@@ -281,6 +281,17 @@ class SessionManager:
             self._current_session.total_prompt_tokens,
             self._current_session.total_completion_tokens,
         )
+
+    async def search_messages(self, keyword: str) -> list[tuple[Session, list[Message]]]:
+        """E1: 在当前用户所有会话中按关键词搜索消息
+
+        Args:
+            keyword: 搜索关键词（子串匹配）
+
+        Returns:
+            (会话, 匹配消息列表) 对，按会话 ID 分组
+        """
+        return await self._backend.search_messages(self._user_id, keyword)
 
     async def get_messages(self) -> list[Message]:
         """获取当前会话的全部历史消息（按创建时间正序）"""

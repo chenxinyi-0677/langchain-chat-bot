@@ -111,10 +111,12 @@ class TUIApp:
                 await self._cmd_sessions()
             elif cmd == "presets":
                 await self._cmd_presets()
+            elif cmd == "search":
+                await self._cmd_search()
             elif cmd == "switch":
                 await self._cmd_switch_user()
             else:
-                print("可用命令: chat  sessions  presets  switch  exit")
+                print("可用命令: chat  sessions  presets  search  switch  exit")
 
     # ==================================================================
     # chat 命令
@@ -201,6 +203,29 @@ class TUIApp:
         else:
             print("  （无）")
         print("（管理功能待实现）")
+
+    # ==================================================================
+    # search 命令 —— E1 对话搜索
+    # ==================================================================
+
+    async def _cmd_search(self) -> None:
+        """按关键词搜索当前用户所有会话中的消息"""
+        assert self._session_mgr is not None
+        keyword = input("搜索关键词: ").strip()
+        if not keyword:
+            return
+        results = await self._session_mgr.search_messages(keyword)
+        if not results:
+            print("未找到匹配的消息")
+            return
+        for session, messages in results:
+            title = session.title or "未命名会话"
+            print(f"\n┌─ [{session.id}] {title}")
+            for msg in messages:
+                role = "你" if msg.role == "human" else "AI"
+                content = msg.content[:80] + "..." if len(msg.content) > 80 else msg.content
+                print(f"│ {role}: {content}")
+            print(f"└─ {len(messages)} 条匹配")
 
     # ==================================================================
     # switch 命令

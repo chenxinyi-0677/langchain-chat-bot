@@ -95,6 +95,10 @@ class UIProtocol(Protocol):
         """获取当前会话的历史消息"""
         ...
 
+    async def search_messages(self, keyword: str) -> list[tuple[Session, list[Message]]]:
+        """E1: 在当前用户所有会话中按关键词搜索消息"""
+        ...
+
     async def switch_model(self, model_name: str) -> None:
         """A5: 切换当前会话的模型"""
         ...

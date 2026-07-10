@@ -3,8 +3,10 @@
 
 【覆盖需求】
 C1(新建会话)  C2(加载历史会话)  C3(会话列表)  C4(重命名)
-C5(删除会话)  C6(自动保存)  C7(标题自动生成)  E2(Token 统计)  B4(用户隔离)
+C5(删除会话)  C6(自动保存)  C7(标题自动生成)  E1(对话搜索)  E2(Token 统计)  B4(用户隔离)
 """
+
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -338,3 +340,27 @@ class TestGetMessages:
             await mgr.add_user_message("hi")
         with pytest.raises(RuntimeError, match="没有当前会话"):
             await mgr.add_ai_message("hello")
+
+
+# =====================================================================
+# E1 — 对话搜索
+# =====================================================================
+
+
+class TestSearchMessages:
+    """E1 搜索 —— 纯透传，不重复测 storage 层 LIKE 逻辑"""
+
+    async def test_search_delegates_to_backend(self):
+        backend = AsyncMock()
+        backend.search_messages.return_value = []
+        mgr = SessionManager(backend=backend, user_id=42)
+        result = await mgr.search_messages("hello")
+        backend.search_messages.assert_awaited_once_with(42, "hello")
+        assert result == []
+
+    async def test_search_passthrough_results(self):
+        backend = AsyncMock()
+        backend.search_messages.return_value = [("fake_session", ["fake_msg"])]
+        mgr = SessionManager(backend=backend, user_id=1)
+        result = await mgr.search_messages("test")
+        assert result == [("fake_session", ["fake_msg"])]
