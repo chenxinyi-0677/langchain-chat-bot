@@ -97,9 +97,12 @@ class TestAppConfig:
 
 
 class TestConfigManager:
-    def test_load_defaults_when_no_files(self, tmp_path: Path):
+    def test_load_defaults_when_no_yaml(self, tmp_path: Path):
+        """仅 .env 存在，config.yaml 不存在时应使用 LLM 默认值"""
+        dotenv = tmp_path / ".env"
+        dotenv.write_text("")
         mgr = ConfigManager(
-            env_file=str(tmp_path / ".env"),
+            env_file=str(dotenv),
             config_path=str(tmp_path / "config.yaml"),
         )
         config = mgr.load()
@@ -108,7 +111,18 @@ class TestConfigManager:
         assert config.storage.type == "sqlite"
         assert config.env.model_name == "gpt-4o"
 
+    def test_load_missing_dotenv_raises(self, tmp_path: Path):
+        """.env 不存在时应抛出明确的 FileNotFoundError"""
+        mgr = ConfigManager(
+            env_file=str(tmp_path / ".env"),
+            config_path=str(tmp_path / "config.yaml"),
+        )
+        with pytest.raises(FileNotFoundError, match=".env 文件未找到"):
+            mgr.load()
+
     def test_load_from_yaml(self, tmp_path: Path):
+        dotenv = tmp_path / ".env"
+        dotenv.write_text("")
         config_yaml = tmp_path / "config.yaml"
         config_yaml.write_text(
             "llm:\n  timeout: 30\n  max_retries: 5\nstorage:\n  type: sqlite\n",
@@ -141,6 +155,8 @@ class TestConfigManager:
 
     def test_yaml_partial_override(self, tmp_path: Path):
         """YAML 只写部分字段，其余应使用默认值"""
+        dotenv = tmp_path / ".env"
+        dotenv.write_text("")
         config_yaml = tmp_path / "config.yaml"
         config_yaml.write_text("llm:\n  timeout: 99\n")
         mgr = ConfigManager(

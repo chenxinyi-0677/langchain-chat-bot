@@ -114,6 +114,10 @@ class AppConfig(BaseModel):
 # =============================================================================
 
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+"""项目根目录，基于本文件路径(src/core/config_manager.py)反推得到"""
+
+
 class ConfigManager:
     """配置加载管理器
 
@@ -121,22 +125,35 @@ class ConfigManager:
     - load() 仅涉及本地文件读取（open + yaml.parse），均为 CPU 操作
     - 不存在阻塞 IO 等待，加 async 只会增加事件循环开销
     - 在 main.py 启动阶段调用一次，不影响运行时异步链路
+
+    路径策略:
+    - 默认 .env / config.yaml 基于项目根目录，不依赖运行时 cwd
+    - 外部可传入任意路径覆盖默认值
     """
 
     def __init__(
         self,
-        env_file: str = ".env",
-        config_path: str = "config.yaml",
+        env_file: str | None = None,
+        config_path: str | None = None,
     ):
-        self._env_file = env_file
-        self._config_path = config_path
+        self._env_file = env_file or str(_PROJECT_ROOT / ".env")
+        self._config_path = config_path or str(_PROJECT_ROOT / "config.yaml")
 
     def load(self) -> AppConfig:
         """加载全部配置并校验
 
+        Raises:
+            FileNotFoundError: 当 .env 文件不存在时，附带明确路径提示
+
         Returns:
             包含所有配置段的 AppConfig 对象
         """
+        env_path = Path(self._env_file)
+        if not env_path.exists():
+            raise FileNotFoundError(
+                f".env 文件未找到，路径: {env_path.resolve()}\n"
+                f"请将 {_PROJECT_ROOT / '.env.example'} 复制为 .env 并填入 API 配置。"
+            )
         env = EnvSettings(_env_file=self._env_file)
         yaml_config = self._load_yaml()
         return AppConfig(
