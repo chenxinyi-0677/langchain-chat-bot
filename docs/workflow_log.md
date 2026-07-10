@@ -313,3 +313,22 @@
   - `src/core/exporter.py`（加日志埋点）
   - `tests/test_logger.py`（新建，4 项测试：JSON 结构 + extra 字段 + 目录创建 + 配置回退）
 - **对应 tag**: `v0.13-logging`
+
+---
+
+## [步骤14] H2 多模型并行对比 — 2026-07-10
+
+- **对应需求**: H2（多模型并行对比）
+- **设计要点**:
+  - 新建 `src/core/comparator.py`，独立于 ChatEngine（不需 session，不需持久化）
+  - `ModelResult` 数据类：model_name, response, prompt_tokens, completion_tokens, error（可选）
+  - `Comparator._call_single()` 内部 try/except 捕获异常转 `ModelResult(error=...)`，不向外抛
+  - `compare(prompt, model_names)` 用 `asyncio.gather(*tasks)` 并发收集所有结果——因每个协程都返回 ModelResult，gather 不会见到异常，一个模型失败不影响其他
+  - 结果不落库（H2 是 1 对 N，现有 Message 模型一对多不兼容）
+  - TUI 侧新增 compare 子命令：输入 prompt + 逗号分隔模型名，等全部返回后逐个展示（`===` 分隔线隔开每个模型的输出块）
+- **变更文件**:
+  - `src/core/comparator.py`（新建，Comparator + ModelResult）
+  - `src/interface/ui_protocol.py`（新增 compare_models 签名）
+  - `src/ui/tui/app.py`（新增 compare 子命令 + Comparator 实例化）
+  - `tests/test_comparator.py`（新建，5 项测试：ModelResult ×2、并发 ×2、空列表）
+- **对应 tag**: `v0.15-h2`

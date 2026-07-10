@@ -16,6 +16,7 @@ UI 协议接口 —— UIProtocol
 
 from typing import AsyncIterator, Optional, Protocol, runtime_checkable
 
+from src.core.comparator import ModelResult
 from src.models.schemas import Message, Preset, Session, User
 
 
@@ -113,6 +114,10 @@ class UIProtocol(Protocol):
 
     async def chat(self, content: str) -> AsyncIterator[str]:
         """A1/A2: 执行一轮对话，逐 token 产出 LLM 回复"""
+        ...
+
+    async def compare_models(self, prompt: str, model_names: list[str]) -> list[ModelResult]:
+        """H2: 多模型并行对比，返回各模型的结果"""
         ...
 
     # ==================================================================

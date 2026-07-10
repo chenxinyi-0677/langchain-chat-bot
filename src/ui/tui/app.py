@@ -16,6 +16,7 @@ TUI 主应用 —— TUIApp
 from typing import Optional
 
 from src.core.chat_engine import ChatEngine
+from src.core.comparator import Comparator
 from src.core.config_manager import AppConfig
 from src.core.exporter import Exporter
 from src.core.preset_manager import PresetManager
@@ -41,6 +42,7 @@ class TUIApp:
         self._preset_mgr: Optional[PresetManager] = None
         self._chat_engine: Optional[ChatEngine] = None
         self._exporter: Optional[Exporter] = None
+        self._comparator = Comparator(config=config)
 
     # ==================================================================
     # 入口
@@ -118,10 +120,12 @@ class TUIApp:
                 await self._cmd_search()
             elif cmd == "export":
                 await self._cmd_export()
+            elif cmd == "compare":
+                await self._cmd_compare()
             elif cmd == "switch":
                 await self._cmd_switch_user()
             else:
-                print("可用命令: chat  sessions  presets  search  export  switch  exit")
+                print("可用命令: chat  sessions  presets  search  export  compare  switch  exit")
 
     # ==================================================================
     # chat 命令
@@ -250,6 +254,37 @@ class TUIApp:
             print(f"导出成功: {path}")
         except ValueError as e:
             print(e)
+
+    # ==================================================================
+    # compare 命令 —— H2 多模型并行对比
+    # ==================================================================
+
+    async def _cmd_compare(self) -> None:
+        """将同一 prompt 同时发送给多个模型，对比输出"""
+        prompt = input("对比提示词: ").strip()
+        if not prompt:
+            return
+        raw = input("模型名（逗号分隔，如 gpt-4o,deepseek-chat）: ").strip()
+        if not raw:
+            return
+        model_names = [m.strip() for m in raw.split(",") if m.strip()]
+        if not model_names:
+            print("至少需要一个模型")
+            return
+
+        print(f"\n正在并发调用 {len(model_names)} 个模型，请稍候...\n")
+        results = await self._comparator.compare(prompt, model_names)
+
+        for result in results:
+            sep = "=" * 60
+            print(sep)
+            print(f"模型: {result.model_name}")
+            print(sep)
+            if result.error:
+                print(f"[错误] {result.error}")
+            else:
+                print(result.response)
+                print(f"\n--- prompt_tokens={result.prompt_tokens}, completion_tokens={result.completion_tokens}")
 
     # ==================================================================
     # switch 命令
