@@ -332,3 +332,21 @@
   - `src/ui/tui/app.py`（新增 compare 子命令 + Comparator 实例化）
   - `tests/test_comparator.py`（新建，5 项测试：ModelResult ×2、并发 ×2、空列表）
 - **对应 tag**: `v0.15-h2`
+
+---
+
+## [步骤15] TUI 美化 — 2026-07-10
+
+- **对应需求**: 全部（UI 层视觉优化）
+- **设计要点**:
+  - 主循环骨架不动，仅替换 `print`/`input` 为 rich/prompt_toolkit
+  - `widgets.py`：集中管理 Console 实例、`get_command_prompt()`（命令补全 + FileHistory）、`get_input()`
+  - `chat_view.py`：用户消息蓝色 Panel 瞬间渲染，AI 回复用 `rich.live.Live` 逐 token 刷新绿色 Panel 内容，保留 A2 流式视觉效果
+  - `menu_view.py`：`rich.Table` 渲染会话/预设列表，`rich.Panel` 渲染搜索结果和模型对比结果
+  - `app.py`：所有 `input()` → `get_command_prompt()` / `get_input()`，所有 `print()` → `show_message()` / `show_success()` / `show_error()`
+- **变更文件**:
+  - `src/ui/tui/app.py`（重写：迁移所有 print/input）
+  - `src/ui/tui/widgets.py`（重写：prompt_toolkit + rich 组件）
+  - `src/ui/tui/chat_view.py`（重写：Live 流式 Panel）
+  - `src/ui/tui/menu_view.py`（重写：Table + Panel 渲染器）
+- **对应 tag**: `v0.16-tui-polish`
