@@ -29,7 +29,7 @@ async def show_ai_stream(stream: AsyncIterator[str]) -> None:
     """流式显示 AI 回复，逐 token 刷新 Panel 内容"""
     ai_text = Text()
     panel = Panel(ai_text, title="AI", border_style="green", title_align="left")
-    with Live(panel, console=console, refresh_per_second=15, vertical_overflow="visible"):
+    with Live(panel, console=console, refresh_per_second=15, vertical_overflow="visible") as live:
         async for token in stream:
             ai_text.append(token)
-            panel.renderable = ai_text
+            live.update(panel)

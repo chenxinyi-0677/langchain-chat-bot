@@ -364,3 +364,16 @@
   - `chat_view.py` / `menu_view.py`: 审查确认无同步/异步混用隐患（纯 `rich` API，不涉及事件循环）
 - **变更文件**: `src/ui/tui/widgets.py`, `src/ui/tui/app.py`
 - **对应 tag**: `v0.17-async-fix`
+
+---
+
+## [步骤17] 修复 Live 流式渲染 Bug — 2026-07-10
+
+- **对应需求**: A2（流式输出视觉效果）
+- **背景**: `show_ai_stream` 的 `Live` 使用存在三个 bug：未捕获 `live` 实例 → 无法调用 `live.update()`；`panel.renderable = ai_text` 是空赋值（同一对象）；全依赖 auto_refresh 导致终端内每次刷新打印新 Panel 而非原地覆盖
+- **修复**:
+  - `with Live(...) as live:` 捕获实例
+  - 循环内调用 `live.update(panel)` 触发立即原地重绘
+  - 移除无意义的 `panel.renderable = ai_text`
+- **变更文件**: `src/ui/tui/chat_view.py`
+- **对应 tag**: `v0.18-live-fix`
